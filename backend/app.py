@@ -27,6 +27,16 @@ GD_LR = 1e-3
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 
+# ---- CORS config ----
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000," 
+        "https://farm-profit-tool-7pzf.vercel.app"
+    ).split(",")
+    if o.strip()
+]
+
 
 # ---------------------- Utilities ----------------------
 
@@ -282,7 +292,13 @@ def _predict_single(crop_entry: Dict, inputs: Dict[str, float]) -> Dict:
 # ---------------------- Flask App ----------------------
 
 app = Flask(__name__)
-CORS(app)
+# Only allow our frontend(s) to call /api/*
+CORS(
+    app,
+    resources={r"/api/*": {"origins": ALLOWED_ORIGINS}},
+    supports_credentials=False  # flip to True only if you send cookies
+)
+
 
 REGISTRY = _load_or_train_all()
 
