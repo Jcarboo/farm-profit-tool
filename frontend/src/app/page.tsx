@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Link from "next/link";
+import Link from 'next/link';
+import Image from 'next/image';
 import {
   LineChart, Line, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip,
-  BarChart, Bar,
-  Label,
-  Legend
+  BarChart, Bar, Label, Legend
 } from 'recharts';
 
 type FeatureKey = 'Seed'|'Fertilizer'|'Chemicals'|'Services'|'FLE'|'Repairs'|'Water'|'Interest';
@@ -24,7 +23,7 @@ type PredictResponse = {
   interval_95: [number|null, number|null];
   contributions: Record<FeatureKey, number>;
   marginal_per_dollar: Record<FeatureKey, number>;
-  model_meta: any;
+  model_meta: unknown; // was any
 };
 
 type PredictMultiResponse = {
@@ -43,7 +42,8 @@ const toCurrency = (n: number | null | undefined) =>
   (n === null || n === undefined || Number.isNaN(n)) ? '—' :
   n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
-const greenPanel = "bg-emerald-900/30 border border-emerald-700/60 rounded-2xl";
+const greenPanel = 'bg-emerald-900/30 border border-emerald-700/60 rounded-2xl';
+
 
 // ---------- helpers ----------
 const zeroNum = (): InputsNum => ({ Seed:0, Fertilizer:0, Chemicals:0, Services:0, FLE:0, Repairs:0, Water:0, Interest:0 });
@@ -97,9 +97,10 @@ export default function Page() {
           setWhatIf({ [first]: zeroNum() });
           setShareStr({ [first]: '1' });
         }
-      } catch (e: any) {
-        setErr(e?.message || 'Failed to load crops');
-      }
+      } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setErr(msg || 'Failed to load crops');
+        }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -157,19 +158,20 @@ export default function Page() {
   };
 
   const resetWhatIf = () => {
-    setWhatIf(prev => {
+    setWhatIf(() => {
       const next: CropInputsNum = {};
       for (const c of selected) next[c] = zeroNum();
       return next;
     });
+
     setWhatIfSingle(null); setWhatIfMulti(null);
     if (singleResult) setHistory([singleResult.prediction]);
     if (multiResult) setHistory([multiResult.aggregate_prediction]);
   };
 
-  const inputsNumForAPI = (crop: string): InputsNum => {
+    const inputsNumForAPI = (crop: string): InputsNum => {
     const baseStr = inputsStr[crop] || emptyStrs();
-    const out: any = {};
+    const out: Partial<InputsNum> = {};
     for (const f of FEATURES) out[f] = toNum(baseStr[f]);
     return out as InputsNum;
   };
@@ -177,10 +179,11 @@ export default function Page() {
   const inputsWithWhatIf = (crop: string): InputsNum => {
     const base = inputsNumForAPI(crop);
     const delta = whatIf[crop] || zeroNum();
-    const merged: any = {};
+    const merged: Partial<InputsNum> = {};
     for (const f of FEATURES) merged[f] = (base[f] ?? 0) + (delta[f] ?? 0);
     return merged as InputsNum;
   };
+
 
   const estimate = async () => {
     try {
@@ -217,11 +220,13 @@ export default function Page() {
         setMultiResult(data);
         setHistory([data.aggregate_prediction]);
       }
-    } catch (e: any) {
-      setErr(e?.message || 'Failed to predict');
-    } finally {
-      setLoading(false);
-    }
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setErr(msg || 'Failed to predict');
+      } finally {
+        setLoading(false);
+      }
+
   };
 
   // Debounced What-If compute + append to sparkline
@@ -231,6 +236,7 @@ export default function Page() {
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      setWhatIfLoading(true);
       try {
         if (!multiMode) {
           const crop = selected[0];
@@ -256,6 +262,9 @@ export default function Page() {
         }
       } catch {
         // ignore in UI
+      }
+        finally {
+        setWhatIfLoading(false);
       }
     }, 400);
 
@@ -287,11 +296,14 @@ export default function Page() {
         {/* About teaser */}
           <section className={`${greenPanel} p-4`}>
             <div className="flex flex-col md:flex-row items-center gap-4">
-              <img
+              <Image
                 src="https://i.pinimg.com/originals/a5/8d/69/a58d69c83ef14e19a221d15e3510a237.gif"
                 alt="Animated corn field GIF"
+                width={128}
+                height={128}
                 className="w-28 h-28 md:w-32 md:h-32 rounded-xl object-cover border border-emerald-700 shadow-lg"
                 loading="lazy"
+                unoptimized
               />
               <div className="flex-1 text-center md:text-left">
                 <h2 className="text-lg md:text-xl font-semibold">Want the full story?</h2>
@@ -387,7 +399,7 @@ export default function Page() {
             {selected.length > 1 && (
               <div className="text-sm text-emerald-200/80">
                 Total share (before normalization): <span className="font-semibold">
-                  {selected.reduce((acc, c) => acc + (sharesNum[c] || 0), 0)}
+                  {totalShare}
                 </span>
               </div>
             )}
@@ -643,7 +655,7 @@ export default function Page() {
                   <div className="text-sm text-emerald-300 mb-1">Notes</div>
                   <div className="text-xs text-emerald-200/80">
                     Shares are normalized on the server. Consider agronomic minimums for seed and essential inputs.
-                    Interest and FLE reductions raise profit only if they don’t reduce production capacity.
+                    Interest and FLE reductions raise profit only if they don&rsquo;t reduce production capacity.
                   </div>
                 </div>
               </div>

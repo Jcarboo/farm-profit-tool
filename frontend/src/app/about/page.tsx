@@ -131,7 +131,7 @@ export default function AboutPage() {
             </li>
             <li>
               Feature relationships with profit can change with weather, markets, and policy; historical
-              patterns may not always hold, so it's important to take into account features that the model
+              patterns may not always hold, so it&apos;s important to take into account features that the model
               does not include.
             </li>
             <li>
