@@ -1,0 +1,26 @@
+# node / next
+node_modules/
+.next/
+out/
+*.log
+.env
+.env.*.local
+
+# python / flask
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.dist/
+.eggs/
+
+# models (generated)
+backend/models/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
